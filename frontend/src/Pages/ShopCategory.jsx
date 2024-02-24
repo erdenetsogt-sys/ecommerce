@@ -10,7 +10,7 @@ export const ShopCategory = (props) => {
       <img className="shopcategory-banner" src={props?.banner} alt="" />
       <div className="shopcategory-indexSort">
         <p>
-          <span>Showing 1 -12</span>
+          <span>Showing 1 -12 </span>
           <span>Out of 36 products</span>
         </p>
         <div className="shopcategory-sort">
