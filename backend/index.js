@@ -3,11 +3,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const app = express();
 const jwt = require("jsonwebtoken");
+// image mounting system
 const multer = require("multer");
 const path = require("path");
+// access to react
 const cors = require("cors");
-
+// any request will be json extended
 app.use(express.json());
+// connect with frontend to backend
 app.use(cors());
 
 //Database Connnection with Mongoose
@@ -153,6 +156,74 @@ app.post("/addproduct", async (req, res) => {
     name: req.body.name,
   });
 });
+
+//creating middle to fetch user
+
+const fetchUser = async (req, res, next) => {
+  const token = req.header("auth-token");
+  if (!token) {
+    res.status(401).send({ errors: "please authenticate using valid token" });
+  } else {
+    try {
+      const data = jwt.verify(token, "secret_ecom");
+      req.user = data.user;
+      next();
+    } catch (error) {
+      console.log("error verifying token: ", error);
+      res.status(401).send({ errors: "please authenticate using valid token" });
+    }
+  }
+};
+//Creating API for carr data
+app.post("/addtocart", fetchUser, async (req, res) => {
+  console.log("added", req.body.itemId);
+  let userData = await Users.findOne({ _id: req.user.id });
+  userData.cartData[req.body.itemId] += 1;
+  await Users.findOneAndUpdate(
+    { _id: req.user.id },
+    { cartData: userData.cartData }
+  );
+  res.send("Added");
+});
+
+//Creatin endpoint to remove product from cartdata
+app.post("/removefromcart", fetchUser, async (req, res) => {
+  console.log("removed", req.body.itemId);
+  let userData = await Users.findOne({ _id: req.user.id });
+  if (userData.cartData[req.body.itemId] > 0) {
+    userData.cartData[req.body.itemId] -= 1;
+    await Users.findOneAndUpdate(
+      { _id: req.user.id },
+      { cartData: userData.cartData }
+    );
+  }
+
+  res.send("Removed");
+});
+
+//creating endpoint for cartdata
+app.post("/getcart", fetchUser, async (req, res) => {
+  let userData = await Users.findOne({ _id: req.user.id });
+
+  res.json(userData.cartData);
+});
+
+//Creating API for new collections
+app.get("/newcollections", async (req, res) => {
+  let products = await Product.find({});
+  let newcollection = products.slice(0).slice(-8);
+  res.send(newcollection);
+  console.log("new collection fetched");
+});
+
+//Creating API for popular in women section
+app.get("/popularinwomen", async (req, res) => {
+  let products = await Product.find({ category: "women" });
+  let popular_in_women = products.slice(0, 4);
+  res.send(popular_in_women);
+  console.log("popular in women fetched");
+});
+
 //Creating API for deleting product
 app.post("/removeproduct", async (req, res) => {
   await Product.findOneAndDelete({ id: req.body.id });
